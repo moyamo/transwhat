@@ -20,7 +20,6 @@ CREATE TABLE IF NOT EXISTS `buddies` (
 CREATE TABLE IF NOT EXISTS `numbers` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `number` varchar(32) NOT NULL,
-  `picture` blob NOT NULL,
   `state` int(11) NOT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `number` (`number`)

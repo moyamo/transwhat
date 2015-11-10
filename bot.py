@@ -32,8 +32,6 @@ import utils
 
 from constants import *
 
-from Yowsup.Contacts.contacts import WAContactsSyncRequest
-
 class Bot():
 	def __init__(self, session, name = "Bot"):
 		self.session = session
