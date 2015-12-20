@@ -212,6 +212,7 @@ class Session(YowsupApp):
 		self.backend.handleConnected(self.user)
 		self.backend.handleBuddyChanged(self.user, "bot", self.bot.name,
 										["Admin"], protocol_pb2.STATUS_ONLINE)
+		self.requestClientConfig() # ?
 		if self.initialized == False:
 			self.sendOfflineMessages()
 			#self.bot.call("welcome")
