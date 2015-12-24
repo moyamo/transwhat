@@ -39,6 +39,7 @@ from yowsup.layers.protocol_notifications.protocolentities import *
 from yowsup.layers.protocol_messages.protocolentities  import *
 from yowsup.layers.protocol_presence.protocolentities import *
 from yowsup.layers.protocol_profiles.protocolentities import *
+from yowsup.layers.protocol_privacy.protocolentities import *
 from yowsup.layers.protocol_receipts.protocolentities  import *
 from yowsup.layers.protocol_iq.protocolentities  import *
 from yowsup.layers.protocol_media.mediauploader import MediaUploader
@@ -298,6 +299,21 @@ class YowsupApp(object):
 	def requestClientConfig(self, success = None, failure = None):
 		"""I'm not sure what this does, but it might be required on first login."""
 		iq = PushIqProtocolEntity()
+		self.sendIq(iq, onSuccess = success, onError = failure)
+
+	def requestPrivacyList(self, success = None, failure = None):
+		"""I'm not sure what this does, but it might be required on first login."""
+		iq = PrivacyListIqProtocolEntity()
+		self.sendIq(iq, onSuccess = success, onError = failure)
+
+	def requestServerProperties(self, success = None, failure = None):
+		"""I'm not sure what this does, but it might be required on first login."""
+		iq = PropsIqProtocolEntity()
+		self.sendIq(iq, onSuccess = success, onError = failure)
+
+	def requestBroadcastList(self, success = None, failure = None):
+		"""Request your broadcast list"""
+		iq = BroadcastListIqProtocolEntity()
 		self.sendIq(iq, onSuccess = success, onError = failure)
 
 	def requestStatuses(self, contacts, success = None, failure = None):
