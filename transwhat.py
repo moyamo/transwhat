@@ -91,8 +91,6 @@ while True:
 			callback()
 		except Queue.Empty:
 			pass
-		else:
-			break
 		if closed:
 			break
 	except SystemExit:
