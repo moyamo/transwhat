@@ -117,13 +117,14 @@ class WhatsAppBackend(SpectrumBackend):
 		self.logger.debug("handleVCardRequest(user=%s, buddy=%s, ID=%s)", user, buddy, ID)
 		self.sessions[user].requestVCard(buddy, ID)
 
+	def handleVCardUpdatedRequest(self, user, photo, nickname):
+		self.logger.debug("handleVCardUpdatedRequest(user=%s, nickname=%s)", user, photo, nickname)
+		self.session[user].setProfilePicture(photo)
 
 	# TODO
 	def handleBuddyBlockToggled(self, user, buddy, blocked):
 		pass
 
-	def handleVCardUpdatedRequest(self, user, photo, nickname):
-		pass
 
 	def handleAttentionRequest(self, user, buddy, message):
 		pass
