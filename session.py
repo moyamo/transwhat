@@ -143,9 +143,10 @@ class Session(YowsupApp):
 				oroom.subjectOwner = subjectOwner
 				oroom.subject = subject
 			else:
-				self.groups[room] = Group(room, owner, subject, subjectOwner)
+				self.groups[room] = Group(room, owner, subject, subjectOwner, self.backend, self.user)
 #				self.joinRoom(self._shortenGroupId(room), self.user.split("@")[0])
-			self.groups[room].participants = group.getParticipants().keys()
+			self.groups[room].addParticipants(group.getParticipants().keys(),
+					self.buddies, self.legacyName)
 
 			#self._addParticipantsToRoom(room, group.getParticipants())
 
@@ -173,12 +174,10 @@ class Session(YowsupApp):
 
 			group = self.groups[room]
 			group.nick = nick
-			try:
-				ownerNick = self.buddies[group.subjectOwner].nick
-			except KeyError:
-				ownerNick = group.subjectOwner
+			group.participants[self.legacyName] = nick
+			ownerNick = group.participants[group.subjectOwner]
 
-			self._refreshParticipants(room)
+			group.sendParticipantsToSpectrum(self.legacyName)
 			self.backend.handleSubject(self.user, self._shortenGroupId(room),
 									   group.subject, ownerNick)
 			self.logger.debug("Room subject: room=%s, subject=%s",
@@ -197,29 +196,6 @@ class Session(YowsupApp):
 			group.joined = False
 		else:
 			self.logger.warn("Room doesn't exist: %s. Unable to leave.", room)
-
-	def _refreshParticipants(self, room):
-		group = self.groups[room]
-		for jid in group.participants:
-			buddy = jid.split("@")[0]
-			self.logger.info("Added %s to room %s", buddy, room)
-			try:
-				nick = self.buddies[buddy].nick
-			except KeyError:
-				nick = buddy
-			if nick == "":
-				nick = buddy
-
-			if buddy == group.owner:
-				flags = protocol_pb2.PARTICIPANT_FLAG_MODERATOR
-			else:
-				flags = protocol_pb2.PARTICIPANT_FLAG_NONE
-			if buddy == self.legacyName:
-				nick = group.nick
-				flags = flags | protocol_pb2.PARTICIPANT_FLAG_ME
-			self.backend.handleParticipantChanged(
-				self.user, nick, self._shortenGroupId(room), flags,
-				protocol_pb2.STATUS_ONLINE, buddy)
 
 	def _lastSeen(self, number, seconds):
 		self.logger.debug("Last seen %s at %s seconds" % (number, str(seconds)))
@@ -441,11 +417,8 @@ class Session(YowsupApp):
 		subjectOwner = group.getSubjectOwnerJid(full = False)
 		subject = utils.softToUni(group.getSubject())
 
-		self.groups[room] = Group(room, owner, subject, subjectOwner)
-		self.groups[room].participants = group.getParticipants().keys()
-#		self.joinRoom(self._shortenGroupId(room), self.user.split("@")[0])
-
-		#self._addParticipantsToRoom(room, group.getParticipants())
+		self.groups[room] = Group(room, owner, subject, subjectOwner, self.backend, self.user)
+		self.groups[room].addParticipants(group.getParticipants, self.buddies, self.legacyName)
 		self.bot.send("You have been added to group: %s@%s (%s)"
 					  % (self._shortenGroupId(room), subject, self.backend.spectrum_jid))
 
@@ -453,29 +426,14 @@ class Session(YowsupApp):
 	def onParticipantsAddedToGroup(self, group):
 		self.logger.debug("Participants added to group: %s", group)
 		room = group.getGroupId().split('@')[0]
-		self.groups[room].participants.extend(group.getParticipants())
-		self._refreshParticipants(room)
+		self.groups[room].addParticipants(group.getParticipants(), self.buddies, self.legacyName)
+		self.groups[room].sendParticipantsToSpectrum(self.legacyName)
 
 	# Called by superclass
 	def onParticipantsRemovedFromGroup(self, room, participants):
 		self.logger.debug("Participants removed from group: %s, %s",
 				room, participants)
-		group = self.groups[room]
-		for jid in participants:
-			group.participants.remove(jid)
-			buddy = jid.split("@")[0]
-			try:
-				nick = self.buddies[buddy].nick
-			except KeyError:
-				nick = buddy
-			if nick == "":
-				nick = buddy
-			if buddy == self.legacyName:
-				nick = group.nick
-			flags = protocol_pb2.PARTICIPANT_FLAG_NONE
-			self.backend.handleParticipantChanged(
-					self.user, nick, self._shortenGroupId(room), flags,
-					protocol_pb2.STATUS_NONE, buddy)
+		self.groups[room].removeParticipants(participants)
 
 	def onPresenceReceived(self, _type, name, jid, lastseen):
 		self.logger.info("Presence received: %s %s %s %s", _type, name, jid, lastseen)
@@ -542,13 +500,19 @@ class Session(YowsupApp):
 		elif "-" in sender: # group msg
 			if "/" in sender: # directed at single user
 				room, nick = sender.split("/")
-				for buddy, buddy3 in self.buddies.iteritems():
-						self.logger.info("Group buddy=%s nick=%s", buddy,
-										 buddy3.nick)
-						if buddy3.nick == nick:
-							nick = buddy
-				waId = self.sendTextMessage(nick + '@s.whatsapp.net', message)
-				self.msgIDs[waId] = MsgIDs( ID, waId)
+				group = self.groups[room]
+				number = None
+				for othernumber, othernick in group.participants.iteritems():
+					if othernick == nick:
+						number = othernumber
+						break
+				if number is not None:
+					self.logger.debug("Private message sent from %s to %s", self.legacyName, number)
+					waId = self.sendTextMessage(number + '@s.whatsapp.net', message)
+					self.msgIDs[waId] = MsgIDs( ID, waId)
+				else:
+					self.logger.error("Attempted to send private message to non-existent user")
+					self.logger.debug("%s to %s in %s", self.legacyName, nick, room)
 			else:
 				room = sender
 				if message[0] == '\\' and message[:1] != '\\\\':
