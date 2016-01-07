@@ -66,6 +66,7 @@ class YowsupApp(object):
 					YowProfilesProtocolLayer,
 					YowGroupsProtocolLayer,
 					YowPresenceProtocolLayer)),
+				YowLoggerLayer,
 				YowAxolotlLayer,
 				YowCoderLayer,
 				YowCryptLayer,
