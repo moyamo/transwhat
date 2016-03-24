@@ -219,9 +219,9 @@ class Session(YowsupApp):
 		self.backend.handleBuddyChanged(self.user, "bot", self.bot.name,
 										["Admin"], protocol_pb2.STATUS_ONLINE)
 		# Initialisation?
-		self.requestPrivacyList()
-		self.requestClientConfig()
-		self.requestServerProperties()
+		#self.requestPrivacyList()
+		#self.requestClientConfig()
+		#self.requestServerProperties()
 		# ?
 
 		self.logger.debug('Requesting groups list')
